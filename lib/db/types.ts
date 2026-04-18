@@ -103,20 +103,3 @@ export interface OrderItem {
   price_at_purchase: number
 }
 
-// ─── Supabase schema type (used to type the client) ─────────────────────────
-
-export interface Database {
-  public: {
-    Tables: {
-      products:       { Row: Product;      Insert: Omit<Product, 'id' | 'created_at'>;      Update: Partial<Omit<Product, 'id' | 'created_at'>> }
-      product_colors: { Row: ProductColor; Insert: Omit<ProductColor, 'id'>;                Update: Partial<Omit<ProductColor, 'id'>> }
-      variants:       { Row: Variant;      Insert: Omit<Variant, 'id'>;                     Update: Partial<Omit<Variant, 'id'>> }
-      product_images: { Row: ProductImage; Insert: Omit<ProductImage, 'id'>;                Update: Partial<Omit<ProductImage, 'id'>> }
-      bundles:        { Row: Bundle;       Insert: Omit<Bundle, 'id' | 'created_at'>;       Update: Partial<Omit<Bundle, 'id' | 'created_at'>> }
-      bundle_items:   { Row: BundleItem;   Insert: Omit<BundleItem, 'id'>;                  Update: Partial<Omit<BundleItem, 'id'>> }
-      bundle_images:  { Row: BundleImage;  Insert: Omit<BundleImage, 'id'>;                 Update: Partial<Omit<BundleImage, 'id'>> }
-      orders:         { Row: Order;        Insert: Omit<Order, 'id' | 'created_at'>;        Update: Partial<Omit<Order, 'id' | 'created_at'>> }
-      order_items:    { Row: OrderItem;    Insert: Omit<OrderItem, 'id'>;                   Update: Partial<Omit<OrderItem, 'id'>> }
-    }
-  }
-}

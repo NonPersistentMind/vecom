@@ -1,6 +1,5 @@
 export { db } from './client'
 export type {
-  Database,
   Product,
   ProductColor,
   Variant,
