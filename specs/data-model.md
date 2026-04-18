@@ -107,6 +107,54 @@ Ordered gallery per product. URLs point to the `product-images` Supabase Storage
 - `product_images_product_id_idx` on `product_id`.
 - `product_images_color_id_idx` on `color_id` **WHERE `color_id IS NOT NULL`** — partial index; skips the generic-image rows since those aren't queried by color.
 
+### `bundles` *(M0.2.B)*
+
+A curated set of products sold together at a discount (наприклад: "Постільний комплект 'Ніжність'" = простирадло + підковдра + 2 наволочки, −15%).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` PK | |
+| `name` | `text` NOT NULL | Ukrainian display name |
+| `description` | `text` NOT NULL, default `''` | |
+| `category` | `text` NULL | Optional grouping axis (e.g. матеріал — cotton/linen). `NULL` = uncategorized. Independent from `products.category` (which is item type). |
+| `discount_percent` | `integer` NOT NULL | 0..100; `CHECK (between 0 and 100)` |
+| `created_at` | `timestamptz` NOT NULL, default `now()` | |
+
+Bundle price is **computed**, not stored: `Σ (bundle_items.quantity × variant.price) × (100 − discount_percent) / 100`. Repository layer does the math at read time.
+
+#### Indexes
+
+- `bundles_created_at_idx` on `created_at DESC`.
+- `bundles_category_idx` on `category` **WHERE `category IS NOT NULL`** — partial index; skips uncategorized rows.
+
+### `bundle_items` *(M0.2.B)*
+
+Members of a bundle. One row per unique SKU; `quantity` captures multiplicity (e.g. "2 наволочки білі" is one row with `quantity = 2`). Same product with different variants = separate rows.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` PK | |
+| `bundle_id` | `uuid` NOT NULL → `bundles(id)` | `ON DELETE CASCADE` |
+| `product_id` | `uuid` NOT NULL | see composite FK below |
+| `variant_id` | `uuid` NULL | `NULL` = customer picks at order time. Non-`NULL` = SKU locked. |
+| `quantity` | `integer` NOT NULL, default `1` | `CHECK (>= 1)` |
+| `position` | `integer` NOT NULL, default `0` | render order |
+
+#### Constraints
+
+- `FOREIGN KEY (product_id) → products(id)` `ON DELETE RESTRICT` — blocks deletion of a product that's used in any bundle; admin must remove from bundles first.
+- `FOREIGN KEY (product_id, variant_id) → variants(product_id, id)` `ON DELETE RESTRICT` — composite FK. Guarantees the pinned variant belongs to the bundle_item's product; MATCH SIMPLE skips the check when `variant_id IS NULL`.
+- `UNIQUE NULLS NOT DISTINCT (bundle_id, product_id, variant_id)` — prevents listing the same SKU twice in one bundle. `NULLS NOT DISTINCT` (Postgres 15+) makes two `variant_id = NULL` rows for the same product collide instead of slipping through.
+
+#### Indexes
+
+- `bundle_items_bundle_id_idx` on `bundle_id`.
+- `bundle_items_product_id_idx` on `product_id` — reverse lookup ("which bundles use this product?").
+
+### Companion constraint added in this migration
+
+- `variants` gets a `UNIQUE (product_id, id)` — not for data validation (id alone is already unique), but to make the composite FK from `bundle_items` (and later `order_items`) legal at the SQL level.
+
 ## Invariants
 
 - **Color belongs to product.** A variant's color and an image's color reference `product_colors` via a composite FK that also pins `product_id`. It is impossible at the DB layer for a variant of product A to reference a color of product B.
@@ -117,6 +165,5 @@ Ordered gallery per product. URLs point to the `product-images` Supabase Storage
 
 | Milestone | Adds |
 | --- | --- |
-| M0.2.B | `bundles`, `bundle_items` |
 | M0.2.C | `orders`, `order_items` |
 | M5.4 | `product-images` Supabase Storage bucket + Storage RLS policies (schema for color-scoping is already in place) |
