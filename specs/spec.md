@@ -44,7 +44,7 @@ Each row is a subspec file. "Status" shows which milestone introduces or grows t
 
 | File | Scope | Status |
 | --- | --- | --- |
-| [data-model.md](./data-model.md) | SQL schema, per-field docs, invariants, indexes | — *(grows in M0.2)* |
+| [data-model.md](./data-model.md) | SQL schema, per-field docs, invariants, indexes | Created M0.2.A; grows M0.2.B, M0.2.C, M5.4 |
 | [ui-style-guide.md](./ui-style-guide.md) | Ukrainian tone-of-voice, typography, color tokens, shadcn conventions | — *(grows in M0.6)* |
 | [storefront.md](./storefront.md) | Public pages: homepage, catalog, product, bundles, cart, checkout | — *(grows in M1.1)* |
 | [cart.md](./cart.md) | Cart state model, localStorage persistence, snapshot strategy | — *(grows in M2.1)* |
