@@ -10,7 +10,7 @@ Ukrainian cotton-bedding e-commerce storefront (sheets, duvet covers, pillowcase
 | --- | --- |
 | [AGENTS.md](../AGENTS.md) | The **brief** — what we're building, at a high level. Stable. |
 | [specs/](.) (this directory) | The **detail** — how each subsystem works, grown per milestone. |
-| `~/.claude/plans/i-want-you-to-vivid-pike.md` | The **process** — milestone sequence + commit breakdown. User-local, not in the repo. |
+| [PLAN.md](../PLAN.md) | The **process** — milestone sequence + commit breakdown. |
 
 ## Tech stack (locked)
 
