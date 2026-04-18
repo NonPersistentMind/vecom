@@ -151,6 +151,26 @@ Members of a bundle. One row per unique SKU; `quantity` captures multiplicity (e
 - `bundle_items_bundle_id_idx` on `bundle_id`.
 - `bundle_items_product_id_idx` on `product_id` — reverse lookup ("which bundles use this product?").
 
+### `bundle_images` *(M0.2.B)*
+
+Ordered gallery per bundle. URLs point to the `product-images` Supabase Storage bucket (introduced in M5.4). No color-scoping — bundles span multiple products and colors, so per-color filtering doesn't apply.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` PK | |
+| `bundle_id` | `uuid` NOT NULL → `bundles(id)` | `ON DELETE CASCADE` |
+| `url` | `text` NOT NULL | full public URL |
+| `alt` | `text` NOT NULL, default `''` | |
+| `position` | `integer` NOT NULL, default `0` | ascending sort order |
+
+#### Constraints
+
+- No uniqueness on `position`. Gallery rendering sorts by `(position, id)`; duplicates are tolerated so the admin can reorder without racing constraints.
+
+#### Indexes
+
+- `bundle_images_bundle_id_idx` on `bundle_id`.
+
 ### Companion constraint added in this migration
 
 - `variants` gets a `UNIQUE (product_id, id)` — not for data validation (id alone is already unique), but to make the composite FK from `bundle_items` (and later `order_items`) legal at the SQL level.

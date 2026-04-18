@@ -48,3 +48,15 @@ comment on column bundle_items.quantity   is 'Кількість одиниць 
 
 create index bundle_items_bundle_id_idx  on bundle_items (bundle_id);
 create index bundle_items_product_id_idx on bundle_items (product_id);
+
+create table bundle_images (
+  id        uuid primary key default gen_random_uuid(),
+  bundle_id uuid    not null references bundles(id) on delete cascade,
+  url       text    not null,
+  alt       text    not null default '',
+  position  integer not null default 0
+);
+
+comment on table bundle_images is 'Ordered gallery images for a bundle. No color-scoping — bundles span multiple products and colors.';
+
+create index bundle_images_bundle_id_idx on bundle_images (bundle_id);
