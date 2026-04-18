@@ -175,6 +175,56 @@ Ordered gallery per bundle. URLs point to the `product-images` Supabase Storage 
 
 - `variants` gets a `UNIQUE (product_id, id)` — not for data validation (id alone is already unique), but to make the composite FK from `bundle_items` (and later `order_items`) legal at the SQL level.
 
+### `orders` *(M0.2.C)*
+
+A customer order. Created server-side only — the webhook handler creates it after Wayforpay confirms payment. Never created from client-reported success.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` PK | |
+| `status` | `text` NOT NULL | `CHECK (status IN ('pending','paid','shipped','delivered','cancelled'))` |
+| `customer_name` | `text` NOT NULL | |
+| `customer_email` | `text` NOT NULL | |
+| `customer_phone` | `text` NOT NULL | Required by Nova Poshta for delivery notifications. Stored as-entered (no normalization). |
+| `shipping_address` | `jsonb` NOT NULL | Delivery details. Shape defined by checkout form (Nova Poshta branch or courier address) — see `specs/cart.md` (M2.1). |
+| `payment_ref` | `text` NULL | Wayforpay `orderReference`. `NULL` until payment confirmed. Used for webhook idempotency checks. |
+| `total_amount` | `integer` NOT NULL | Snapshot of order total in kopecks at purchase time. `CHECK (>= 0)` |
+| `created_at` | `timestamptz` NOT NULL, default `now()` | |
+
+#### Indexes
+
+- `orders_status_idx` on `status` — admin order filtering.
+- `orders_created_at_idx` on `created_at DESC` — order listing.
+- `orders_customer_email_idx` on `customer_email` — look up orders by customer.
+- `orders_payment_ref_idx` on `payment_ref` **WHERE `payment_ref IS NOT NULL`** — partial index for webhook idempotency lookup; skips `NULL` rows.
+
+### `order_items` *(M0.2.C)*
+
+Line items of an order. One row per unique SKU. Unlike `bundle_items`, `variant_id` is always non-`NULL` — the customer must select a variant before checkout.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` PK | |
+| `order_id` | `uuid` NOT NULL → `orders(id)` | `ON DELETE CASCADE` |
+| `product_id` | `uuid` NOT NULL | see composite FK below |
+| `variant_id` | `uuid` NOT NULL | see composite FK below |
+| `bundle_id` | `uuid` NULL → `bundles(id)` | `NULL` = bought individually. Non-`NULL` = purchased as part of this bundle; explains any discount in `price_at_purchase`. `ON DELETE RESTRICT` |
+| `quantity` | `integer` NOT NULL | `CHECK (>= 1)` |
+| `price_at_purchase` | `integer` NOT NULL | Snapshot of `variants.price` in kopecks at purchase time. `CHECK (>= 0)` |
+
+#### Constraints
+
+- `FOREIGN KEY (product_id) → products(id)` `ON DELETE RESTRICT` — preserves order history; blocks product deletion if it appears in any order.
+- `FOREIGN KEY (product_id, variant_id) → variants(product_id, id)` `ON DELETE RESTRICT` — composite FK. Guarantees the variant belongs to the correct product; reuses the `UNIQUE (product_id, id)` companion constraint added in `0002`.
+- `FOREIGN KEY (bundle_id) → bundles(id)` `ON DELETE RESTRICT` — preserves order history; blocks bundle deletion if it appears in any order.
+- `UNIQUE (order_id, variant_id)` — prevents the same SKU appearing twice in one order; use `quantity` for multiples.
+
+#### Indexes
+
+- `order_items_order_id_idx` on `order_id` — fetch all items for an order.
+- `order_items_variant_id_idx` on `variant_id` — analytics: which variants sold.
+- `order_items_bundle_id_idx` on `bundle_id` **WHERE `bundle_id IS NOT NULL`** — partial index for bundle sales analytics; skips individually-bought items.
+
 ## Invariants
 
 - **Color belongs to product.** A variant's color and an image's color reference `product_colors` via a composite FK that also pins `product_id`. It is impossible at the DB layer for a variant of product A to reference a color of product B.
@@ -185,5 +235,4 @@ Ordered gallery per bundle. URLs point to the `product-images` Supabase Storage 
 
 | Milestone | Adds |
 | --- | --- |
-| M0.2.C | `orders`, `order_items` |
 | M5.4 | `product-images` Supabase Storage bucket + Storage RLS policies (schema for color-scoping is already in place) |
