@@ -29,12 +29,13 @@ Catalog entry. Size-specific price and stock live on variants, not here.
 | `name` | `text` NOT NULL | Ukrainian display name |
 | `description` | `text` NOT NULL, default `''` | Ukrainian long-form copy |
 | `category` | `text` NOT NULL | e.g. `sheets`, `duvet-covers`, `pillowcases` |
+| `is_archived` | `boolean` NOT NULL, default `false` | Soft-delete. Archived products are hidden from the storefront but preserved for order history. |
 | `created_at` | `timestamptz` NOT NULL, default `now()` | |
 
 #### Indexes
 
-- `products_category_idx` on `category` — catalog filter.
-- `products_created_at_idx` on `created_at DESC` — sort-by-newest.
+- `products_category_idx` on `category` **WHERE `NOT is_archived`** — partial index; storefront catalog filter only needs active products.
+- `products_created_at_idx` on `created_at DESC` — sort-by-newest (all products, including admin view).
 
 ### `product_colors` *(M0.2.A)*
 
@@ -71,6 +72,7 @@ Per-SKU row. Size, dimensions, price, and stock all live here. Color is referenc
 | `price` | `integer` NOT NULL | in kopecks; `CHECK (>= 0)` |
 | `stock_quantity` | `integer` NOT NULL, default `0` | `CHECK (>= 0)` |
 | `description` | `text` NULL | optional per-variant override. `NULL` = inherit `products.description` |
+| `is_archived` | `boolean` NOT NULL, default `false` | Soft-delete. Archived variants (discontinued sizes) are hidden from the storefront but preserved for order history. |
 
 #### Constraints
 
@@ -80,7 +82,7 @@ Per-SKU row. Size, dimensions, price, and stock all live here. Color is referenc
 
 #### Indexes
 
-- `variants_product_id_idx` on `product_id` — PDP lookup.
+- `variants_product_id_idx` on `product_id` **WHERE `NOT is_archived`** — PDP lookup; only active variants.
 - `variants_color_id_idx` on `color_id` — "which variants use this color".
 
 ### `product_images` *(M0.2.A)*
@@ -117,6 +119,7 @@ A curated set of products sold together at a discount (наприклад: "По
 | `name` | `text` NOT NULL | Ukrainian display name |
 | `description` | `text` NOT NULL, default `''` | |
 | `category` | `text` NULL | Optional grouping axis (e.g. матеріал — cotton/linen). `NULL` = uncategorized. Independent from `products.category` (which is item type). |
+| `is_archived` | `boolean` NOT NULL, default `false` | Soft-delete. Archived bundles are hidden from the storefront but preserved for order history. |
 | `discount_percent` | `integer` NOT NULL | 0..100; `CHECK (between 0 and 100)` |
 | `created_at` | `timestamptz` NOT NULL, default `now()` | |
 
@@ -125,7 +128,7 @@ Bundle price is **computed**, not stored: `Σ (bundle_items.quantity × variant.
 #### Indexes
 
 - `bundles_created_at_idx` on `created_at DESC`.
-- `bundles_category_idx` on `category` **WHERE `category IS NOT NULL`** — partial index; skips uncategorized rows.
+- `bundles_category_idx` on `category` **WHERE `category IS NOT NULL AND NOT is_archived`** — partial index; storefront category filter only needs active, categorized bundles.
 
 ### `bundle_items` *(M0.2.B)*
 
@@ -230,6 +233,7 @@ Line items of an order. One row per unique SKU. Unlike `bundle_items`, `variant_
 - **Color belongs to product.** A variant's color and an image's color reference `product_colors` via a composite FK that also pins `product_id`. It is impossible at the DB layer for a variant of product A to reference a color of product B.
 - **Price snapshot at purchase.** `order_items.price_at_purchase` (grows in M0.2.C) will snapshot the variant price at order time. Never read `variants.price` when rendering a historical order — always read the snapshot.
 - **Transactional stock changes.** Stock changes go through the orders flow (M0.5) so decrement + order creation happen atomically. Ad-hoc UPDATEs bypassing that flow can break inventory accuracy.
+- **Soft-delete, not hard-delete.** `products`, `variants`, and `bundles` are archived via `is_archived = true` rather than deleted once they appear in order history. Repository queries always filter `WHERE NOT is_archived` for storefront reads.
 
 ## Future growth
 

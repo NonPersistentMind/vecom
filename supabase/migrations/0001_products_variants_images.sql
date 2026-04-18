@@ -17,16 +17,18 @@
 create extension if not exists "pgcrypto";
 
 create table products (
-  id          uuid primary key default gen_random_uuid(),
-  name        text not null,
-  description text not null default '',
-  category    text not null,
+  id          uuid    primary key default gen_random_uuid(),
+  name        text    not null,
+  description text    not null default '',
+  category    text    not null,
+  is_archived boolean not null default false,
   created_at  timestamptz not null default now()
 );
 
-comment on table products is 'Catalog entries. Size, color, price, stock live on variants.';
+comment on table  products             is 'Catalog entries. Size, color, price, stock live on variants.';
+comment on column products.is_archived is 'Soft-delete: archived products are hidden from the storefront but preserved for order history.';
 
-create index products_category_idx   on products (category);
+create index products_category_idx   on products (category)    where not is_archived;
 create index products_created_at_idx on products (created_at desc);
 
 create table product_colors (
@@ -45,15 +47,16 @@ comment on column product_colors.hex is 'Hex код у форматі #RRGGBB. �
 create index product_colors_product_id_idx on product_colors (product_id);
 
 create table variants (
-  id             uuid primary key default gen_random_uuid(),
-  product_id     uuid not null,
-  color_id       uuid not null,
-  size           text not null,
+  id             uuid    primary key default gen_random_uuid(),
+  product_id     uuid    not null,
+  color_id       uuid    not null,
+  size           text    not null,
   width_cm       integer not null check (width_cm > 0),
   length_cm      integer not null check (length_cm > 0),
   price          integer not null check (price >= 0),
   stock_quantity integer not null default 0 check (stock_quantity >= 0),
   description    text,
+  is_archived    boolean not null default false,
   foreign key (product_id) references products(id) on delete cascade,
   foreign key (product_id, color_id) references product_colors(product_id, id) on delete restrict,
   unique (product_id, size, color_id)
@@ -63,8 +66,9 @@ comment on table  variants             is 'Per-SKU row. One per (product, size, 
 comment on column variants.size        is 'Customer-facing size label ("Євро", "Двоспальний"). Точні розміри — у width_cm/length_cm.';
 comment on column variants.price       is 'Ціна в копійках (1 UAH = 100 копійок). Integer, щоб уникнути помилок округлення.';
 comment on column variants.description is 'Опціональний опис, що перекриває products.description для цього варіанту. NULL = успадкувати опис продукту.';
+comment on column variants.is_archived is 'Soft-delete: archived variants are hidden from the storefront (size no longer available) but preserved for order history.';
 
-create index variants_product_id_idx on variants (product_id);
+create index variants_product_id_idx on variants (product_id) where not is_archived;
 create index variants_color_id_idx   on variants (color_id);
 
 create table product_images (

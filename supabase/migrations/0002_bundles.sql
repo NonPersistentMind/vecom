@@ -15,20 +15,22 @@
 alter table variants add constraint variants_product_id_id_key unique (product_id, id);
 
 create table bundles (
-  id               uuid primary key default gen_random_uuid(),
-  name             text not null,
-  description      text not null default '',
+  id               uuid    primary key default gen_random_uuid(),
+  name             text    not null,
+  description      text    not null default '',
   category         text,
+  is_archived      boolean not null default false,
   discount_percent integer not null check (discount_percent between 0 and 100),
   created_at       timestamptz not null default now()
 );
 
 comment on table  bundles                  is 'Curated sets of products sold together at a discount.';
 comment on column bundles.category         is 'Optional grouping axis (e.g. матеріал — cotton/linen). NULL = uncategorized.';
+comment on column bundles.is_archived      is 'Soft-delete: archived bundles are hidden from the storefront but preserved for order history.';
 comment on column bundles.discount_percent is 'Застосовується до суми цін учасників, 0..100 (integer percent).';
 
 create index bundles_created_at_idx on bundles (created_at desc);
-create index bundles_category_idx   on bundles (category) where category is not null;
+create index bundles_category_idx   on bundles (category) where category is not null and not is_archived;
 
 create table bundle_items (
   id         uuid primary key default gen_random_uuid(),
