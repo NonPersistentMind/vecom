@@ -17,6 +17,12 @@ export {
   addBundleItem,
   removeBundleItem,
 } from './bundles'
+export {
+  getOrders,
+  getOrderById,
+  createOrder,
+  updateOrderStatus,
+} from './orders'
 export type {
   Product,
   ProductColor,
