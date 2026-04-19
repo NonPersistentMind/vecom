@@ -1,4 +1,12 @@
 export { db } from './client'
+export {
+  getVariantsByProduct,
+  createVariant,
+  updateVariantStock,
+  updateVariant,
+  archiveVariant,
+  unarchiveVariant,
+} from './variants'
 export type {
   Product,
   ProductColor,
