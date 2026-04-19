@@ -7,6 +7,16 @@ export {
   archiveVariant,
   unarchiveVariant,
 } from './variants'
+export {
+  getBundles,
+  getBundleById,
+  createBundle,
+  updateBundle,
+  archiveBundle,
+  unarchiveBundle,
+  addBundleItem,
+  removeBundleItem,
+} from './bundles'
 export type {
   Product,
   ProductColor,
