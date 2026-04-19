@@ -1,12 +1,12 @@
 # veganchic.com
 
-Ukrainian cotton-bedding e-commerce storefront (rebuild of [veganchic.store](https://veganchic.store/)).
+Ukrainian cotton-bedding e-commerce storefront
 
 See [AGENTS.md](AGENTS.md) for the full project brief and build order.
 
 ## Stack
 
-Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Supabase · Auth.js v5 · Wayforpay · Resend.
+Next.js 25 · React 19 · TypeScript · Tailwind CSS 4 · Supabase · Auth.js v5 · Wayforpay · Resend.
 
 ## Develop
 
