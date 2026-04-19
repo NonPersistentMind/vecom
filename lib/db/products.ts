@@ -34,13 +34,9 @@ export async function getProductById(id: string): Promise<ProductWithDetails | n
     .from('products')
     .select('*, product_colors(*), variants(*), product_images(*)')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
-  if (error) {
-    if (error.code === 'PGRST116') return null // row not found
-    throw error
-  }
-
+  if (error) throw error
   return data as unknown as ProductWithDetails
 }
 
